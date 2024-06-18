@@ -20,4 +20,4 @@ python model.py
 ```
 ---
 
-I have only used 1000 images from each class (FAKE and REAL) from the original dataset to train this model. You could also try training it on more images. To download the dataset used to train this model click [here](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images).
+I have only used 1000 images from each class (FAKE and REAL) from the original dataset to train this model. You could also try training it on more images. To download the original dataset click [here](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images).
