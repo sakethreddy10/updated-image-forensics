@@ -1,89 +1,121 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
+from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
-from torchvision import transforms, datasets
-from torchvision.models import resnet18, ResNet18_Weights
+from tqdm import tqdm
+from collections import Counter
 
-# define the training directory
-TRAIN_DIR = "dataset/train"
+# Define device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
-# transformation for training data
-transforms = transforms.Compose([
+# Define transformations
+transform_train = transforms.Compose([
     transforms.Resize((224, 224)),
+    transforms.RandomHorizontalFlip(),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    transforms.RandomRotation(15),
     transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-# load training datset
-train_dataset = datasets.ImageFolder(root=TRAIN_DIR, transform=transforms)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+transform_valid = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
 
-# print basic info
-print("Number of training images:", len(train_dataset))
-print("Number of training batches:", len(train_loader))
-print("Images per batch:", train_loader.batch_size)
+# Load datasets
+train_dataset = datasets.ImageFolder(root="dataset/rvf10k/train", transform=transform_train)
+val_dataset = datasets.ImageFolder(root="dataset/rvf10k/valid", transform=transform_valid)
 
-# define the model
-model = resnet18(weights=ResNet18_Weights.DEFAULT)
-model.fc = nn.Linear(model.fc.in_features, 2)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4)
+val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=4)
 
-# set the model to device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Number of training images: {len(train_dataset)}")
+print(f"Number of validation images: {len(val_dataset)}")
+print(f"Images per batch: {train_loader.batch_size}")
+
+# Calculate class weights for balanced training
+class_counts = Counter(train_dataset.targets)
+class_weights = [len(train_dataset) / (2 * count) for count in class_counts.values()]
+criterion = nn.CrossEntropyLoss(weight=torch.tensor(class_weights).to(device))
+
+# Define model
+model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+num_features = model.fc.in_features
+model.fc = nn.Sequential(
+    nn.Dropout(0.5),
+    nn.Linear(num_features, 2)
+)
 model = model.to(device)
 
-# set loss fn & optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+# Define optimizer and learning rate scheduler
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
-# define the training function
+# Training function
 def train(model, train_loader, criterion, optimizer, device):
     model.train()
-
     running_loss = 0.0
     correct = 0
     total = 0
-
-    # Iterate over the training data
-    for i, (inputs, labels) in enumerate(train_loader):
-        inputs = inputs.to(device)
-        labels = labels.to(device)
-
-        # Zero the parameter gradients
+    for inputs, labels in tqdm(train_loader, desc="Training"):
+        inputs, labels = inputs.to(device), labels.to(device)
         optimizer.zero_grad()
-
-        # Forward pass
         outputs = model(inputs)
         loss = criterion(outputs, labels)
-
-        # Backward pass and optimization
         loss.backward()
         optimizer.step()
 
-        # Update the running loss and the number of correct predictions
-        running_loss += loss.item() * inputs.size(0)
-        _, predicted = torch.max(outputs.data, 1)
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
         total += labels.size(0)
-        correct += (predicted == labels).sum().item()
+        correct += predicted.eq(labels).sum().item()
 
-        # Print the loss and accuracy for this batch
-        if (i+1) % 10 == 0:
-            batch_loss = running_loss / (i+1) / inputs.size(0)
-            batch_accuracy = correct / total
-            print(f'Batch {i+1}/{len(train_loader)}, Loss: {batch_loss:.4f}, Accuracy: {batch_accuracy:.4f}')
+    accuracy = 100.0 * correct / total
+    return running_loss / len(train_loader), accuracy
 
-    # Compute the loss and accuracy for the entire epoch
-    epoch_loss = running_loss / len(train_loader.dataset)
-    epoch_accuracy = correct / total
+# Validation function
+def validate(model, val_loader, criterion, device):
+    model.eval()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for inputs, labels in tqdm(val_loader, desc="Validation"):
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
 
-    return epoch_loss, epoch_accuracy
+            running_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
 
-# train the model
-num_epochs = 10
-for epoch in range(num_epochs):
-    epoch_loss, epoch_accuracy = train(model, train_loader, criterion, optimizer, device)
-    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.4f}')
+    accuracy = 100.0 * correct / total
+    return running_loss / len(val_loader), accuracy
 
-# TODO: evaluate the model
+# Main script
+if __name__ == '__main__':
+    num_epochs = 10
+    best_val_acc = 0.0
 
-# save the model
-torch.save(model.state_dict(), "model.pth")
+    for epoch in range(num_epochs):
+        print(f"Epoch {epoch + 1}/{num_epochs}")
+        train_loss, train_acc = train(model, train_loader, criterion, optimizer, device)
+        val_loss, val_acc = validate(model, val_loader, criterion, device)
+
+        print(f"Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.2f}%")
+        print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2f}%")
+
+        # Save the best model based on validation accuracy
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), "best_model.pth")
+            print(f"New best model saved with validation accuracy: {val_acc:.2f}%")
+
+        # Step the learning rate scheduler
+        lr_scheduler.step()
+

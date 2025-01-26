@@ -10,23 +10,28 @@ from torchvision.models import resnet18, ResNet18_Weights
 app = FastAPI()
 
 # Load your PyTorch model
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = resnet18(weights=ResNet18_Weights.DEFAULT)
-model.fc = torch.nn.Linear(model.fc.in_features, 2)
-model.load_state_dict(torch.load("model.pth"))
+model.fc = torch.nn.Sequential(
+    torch.nn.Dropout(0.5),
+    torch.nn.Linear(model.fc.in_features, 2)
+)
+model.load_state_dict(torch.load("best_model.pth", map_location=device))
+model.to(device)
 model.eval()  # Set the model to evaluation mode
 
 # Define the image transformation
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # Preprocess the image
 def preprocess_image(image: Image.Image):
     image = transform(image)
     image = image.unsqueeze(0)  # Add batch dimension
-    return image
+    return image.to(device)
 
 # Define the prediction endpoint
 @app.post("/predict/")
@@ -42,9 +47,10 @@ async def predict(file: UploadFile = File(...)):
         # Perform inference
         with torch.no_grad():
             output = model(input_tensor)
-            prediction = torch.argmax(output, dim=1).item()
+            probabilities = torch.softmax(output, dim=1)
+            prediction = torch.argmax(probabilities, dim=1).item()
 
-        result = "fake" if prediction == 0 else "real"
+        result = f"Fake ({probabilities[0][0]:.2f})" if prediction == 0 else f"Real ({probabilities[0][1]:.2f})"
 
         # Return the prediction as HTML response
         result = f"""
@@ -91,3 +97,5 @@ def main():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
