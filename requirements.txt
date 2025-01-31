@@ -3,3 +3,5 @@ torchvision
 pillow
 fastapi
 uvicorn
+pyngrok
+pillow
