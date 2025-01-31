@@ -102,26 +102,67 @@ async def predict(file: UploadFile = File(...)):
 # Improved HTML Upload Page with Better UI
 @app.get("/")
 def main():
-   content = """
+   content ="""
     <html>
         <head>
-            <title>Image Upload</title>
+            <title>Image Verification</title>
             <style>
-                body { font-family: Arial, sans-serif; text-align: center; margin: 50px; background-color: #f4f4f4; }
-                .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); display: inline-block; }
-                h1 { color: #333; }
-                form { margin-top: 20px; }
-                input[type="file"] { padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 80%; display: block; margin: auto; }
-                input[type="submit"] { margin-top: 15px; background-color: #007BFF; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 85%; font-size: 16px; }
-                input[type="submit"]:hover { background-color: #0056b3; }
+                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+                body {
+                    font-family: 'Poppins', sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background: url('https://source.unsplash.com/1600x900/?technology,abstract') no-repeat center center fixed;
+                    background-size: cover;
+                }
+                .container {
+                    width: 40%;
+                    margin: 100px auto;
+                    background: rgba(255, 255, 255, 0.9);
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+                    text-align: center;
+                }
+                h2 {
+                    font-size: 24px;
+                    color: #333;
+                    margin-bottom: 15px;
+                }
+                form {
+                    margin-top: 20px;
+                }
+                input[type="file"] {
+                    padding: 10px;
+                    border: 2px solid #ccc;
+                    border-radius: 5px;
+                    width: 85%;
+                    display: block;
+                    margin: auto;
+                }
+                input[type="submit"] {
+                    margin-top: 15px;
+                    background-color: #007BFF;
+                    color: white;
+                    border: none;
+                    padding: 12px 20px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    width: 90%;
+                    font-size: 16px;
+                    transition: background 0.3s ease;
+                }
+                input[type="submit"]:hover {
+                    background-color: #0056b3;
+                }
             </style>
         </head>
         <body>
             <div class="container">
-                <h1>Upload an Image for Classification</h1>
+                <h2>Upload an Image for Verification</h2>
                 <form action="/predict/" enctype="multipart/form-data" method="post">
                     <input name="file" type="file" accept="image/*">
-                    <input type="submit" value="Upload and Classify">
+                    <input type="submit" value="Verify Image">
                 </form>
             </div>
         </body>
