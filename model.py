@@ -12,7 +12,7 @@ from collections import Counter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# Balanced Data Augmentation (Fixed)
+# Balanced Data Augmentation (Fixed for Better Learning)
 transform_train = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.RandomHorizontalFlip(),
@@ -52,7 +52,7 @@ model.fc = nn.Sequential(
 
 model = model.to(device)
 
-# Compute Class Weights
+# Compute Class Weights (Fix for Class Imbalance)
 class_counts = Counter(train_dataset.targets)
 class_weights = [len(train_dataset) / (2 * count) for count in class_counts.values()]
 criterion = nn.CrossEntropyLoss(weight=torch.tensor(class_weights).to(device))
@@ -61,12 +61,12 @@ criterion = nn.CrossEntropyLoss(weight=torch.tensor(class_weights).to(device))
 optimizer = optim.Adam(model.parameters(), lr=0.00005)  # Lower LR for stability
 lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
-# Training Loop
-for epoch in range(10):
-    print(f"Epoch {epoch + 1}/10")
-    
-    # Train
+# Training Function
+def train(model, train_loader, criterion, optimizer, device):
     model.train()
+    running_loss = 0.0
+    y_true, y_pred = [], []
+
     for inputs, labels in tqdm(train_loader, desc="Training"):
         inputs, labels = inputs.to(device), labels.to(device)
         optimizer.zero_grad()
@@ -75,17 +75,61 @@ for epoch in range(10):
         loss.backward()
         optimizer.step()
 
-    # Validate
+        running_loss += loss.item()
+        preds = torch.argmax(outputs, dim=1)
+        y_true.extend(labels.cpu().numpy())
+        y_pred.extend(preds.cpu().numpy())
+
+    acc = accuracy_score(y_true, y_pred) * 100
+    precision = precision_score(y_true, y_pred, average="weighted", zero_division=1)
+    recall = recall_score(y_true, y_pred, average="weighted", zero_division=1)
+    f1 = f1_score(y_true, y_pred, average="weighted", zero_division=1)
+
+    return running_loss / len(train_loader), acc, precision, recall, f1
+
+# Validation Function
+def validate(model, val_loader, criterion, device):
     model.eval()
-    all_preds, all_labels = [], []
+    running_loss = 0.0
+    y_true, y_pred = [], []
+
     with torch.no_grad():
         for inputs, labels in tqdm(val_loader, desc="Validation"):
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
+            loss = criterion(outputs, labels)
+
+            running_loss += loss.item()
             preds = torch.argmax(outputs, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(preds.cpu().numpy())
 
-    acc = accuracy_score(all_labels, all_preds) * 100
-    print(f"Validation Accuracy: {acc:.2f}%")
+    acc = accuracy_score(y_true, y_pred) * 100
+    precision = precision_score(y_true, y_pred, average="weighted", zero_division=1)
+    recall = recall_score(y_true, y_pred, average="weighted", zero_division=1)
+    f1 = f1_score(y_true, y_pred, average="weighted", zero_division=1)
+    cm = confusion_matrix(y_true, y_pred)
 
+    return running_loss / len(val_loader), acc, precision, recall, f1, cm
+
+# Train Model & Save Best Version
+best_val_acc = 0.0
+for epoch in range(10):
+    print(f"Epoch {epoch + 1}/10")
+
+    train_loss, train_acc, train_precision, train_recall, train_f1 = train(model, train_loader, criterion, optimizer, device)
+    val_loss, val_acc, val_precision, val_recall, val_f1, val_cm = validate(model, val_loader, criterion, device)
+
+    print(f"Train Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
+    print(f"Validation Loss: {val_loss:.4f}, Accuracy: {val_acc:.2f}%")
+    print(f"Precision: {val_precision:.2f}, Recall: {val_recall:.2f}, F1-Score: {val_f1:.2f}")
+    print(f"Confusion Matrix:\n{val_cm}")
+
+    # Save Best Model
+    if val_acc > best_val_acc:
+        best_val_acc = val_acc
+        torch.save(model.state_dict(), "best_model.pth")  # Save Model
+        print(f"✅ New best model saved with validation accuracy: {val_acc:.2f}%")
+
+    # Adjust Learning Rate
+    lr_scheduler.step()
