@@ -147,4 +147,3 @@ def plot_confusion_matrix(cm, class_names):
 
 # Display Confusion Matrix
 plot_confusion_matrix(val_cm, class_names=train_dataset.classes)
-
