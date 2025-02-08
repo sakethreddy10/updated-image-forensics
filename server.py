@@ -13,22 +13,22 @@ app = FastAPI()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = resnet18(weights=ResNet18_Weights.DEFAULT)
 model.fc = torch.nn.Sequential(
-    torch.nn.Dropout(0.5),
+    torch.nn.Dropout(0.6),  # Match dropout with Model.py
     torch.nn.Linear(model.fc.in_features, 2)
 )
 model.load_state_dict(torch.load("best_model.pth", map_location=device))
 model.to(device)
 model.eval()
 
-# Define image transformations (Must match model.py preprocessing)
+# Define image transformations (Must match Model.py preprocessing)
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Confidence threshold (If below 60%, return "Uncertain")
-CONFIDENCE_THRESHOLD = 0.60
+# Confidence threshold (Increased to 70%)
+CONFIDENCE_THRESHOLD = 0.70
 
 # Function to preprocess image
 def preprocess_image(image: Image.Image):
@@ -108,14 +108,14 @@ def main():
             <title>Image Verification</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
-                body {
+                body {{
                     font-family: 'Poppins', sans-serif;
                     margin: 0;
                     padding: 0;
                     background: url('https://source.unsplash.com/1600x900/?technology,abstract') no-repeat center center fixed;
                     background-size: cover;
-                }
-                .container {
+                }}
+                .container {{
                     width: 40%;
                     margin: 100px auto;
                     background: rgba(255, 255, 255, 0.9);
@@ -123,24 +123,24 @@ def main():
                     border-radius: 10px;
                     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
                     text-align: center;
-                }
-                h2 {
+                }}
+                h2 {{
                     font-size: 24px;
                     color: #333;
                     margin-bottom: 15px;
-                }
-                form {
+                }}
+                form {{
                     margin-top: 20px;
-                }
-                input[type="file"] {
+                }}
+                input[type="file"] {{
                     padding: 10px;
                     border: 2px solid #ccc;
                     border-radius: 5px;
                     width: 85%;
                     display: block;
                     margin: auto;
-                }
-                input[type="submit"] {
+                }}
+                input[type="submit"] {{
                     margin-top: 15px;
                     background-color: #007BFF;
                     color: white;
@@ -151,10 +151,10 @@ def main():
                     width: 90%;
                     font-size: 16px;
                     transition: background 0.3s ease;
-                }
-                input[type="submit"]:hover {
+                }}
+                input[type="submit"]:hover {{
                     background-color: #0056b3;
-                }
+                }}
             </style>
         </head>
         <body>
@@ -174,6 +174,4 @@ def main():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
 
