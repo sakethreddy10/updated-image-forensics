@@ -125,8 +125,8 @@ def validate(model, val_loader, criterion, device):
 
 # Train Model & Save Best Version
 best_val_acc = 0.0
-for epoch in range(20):  # Increased number of epochs
-    print(f"Epoch {epoch + 1}/20")
+for epoch in range(15):  # Increased number of epochs
+    print(f"Epoch {epoch + 1}/15")
 
     train_loss, train_acc, train_precision, train_recall, train_f1 = train(model, train_loader, criterion, optimizer, device)
     val_loss, val_acc, val_precision, val_recall, val_f1, val_cm, y_true, y_pred = validate(model, val_loader, criterion, device)
