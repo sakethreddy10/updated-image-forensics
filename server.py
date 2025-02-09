@@ -27,7 +27,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Dynamic Confidence Threshold (Set based on validation set performance)
+# Confidence threshold (Increased to 70%)
 CONFIDENCE_THRESHOLD = 0.70
 
 # Function to preprocess image
@@ -102,45 +102,47 @@ async def predict(file: UploadFile = File(...)):
 # Improved HTML Upload Page with Better UI
 @app.get("/")
 def main():
-   content ="""
+    content = """
     <html>
         <head>
             <title>Image Verification</title>
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
-                body {{
-                    font-family: 'Poppins', sans-serif;
+                body {
+                    font-family: 'Arial', sans-serif;
                     margin: 0;
                     padding: 0;
-                    background: url('https://source.unsplash.com/1600x900/?nature,forest') no-repeat center center fixed;
+                    background: url('https://source.unsplash.com/1600x900/?nature,water') no-repeat center center fixed;
                     background-size: cover;
-                }}
-                .container {{
-                    width: 40%;
-                    margin: 100px auto;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                }
+                .container {
                     background: rgba(255, 255, 255, 0.9);
                     padding: 30px;
                     border-radius: 10px;
                     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
                     text-align: center;
-                }}
-                h2 {{
+                    width: 40%;
+                }
+                h2 {
                     font-size: 24px;
                     color: #333;
                     margin-bottom: 15px;
-                }}
-                form {{
+                }
+                form {
                     margin-top: 20px;
-                }}
-                input[type="file"] {{
+                }
+                input[type="file"] {
                     padding: 10px;
                     border: 2px solid #ccc;
                     border-radius: 5px;
                     width: 85%;
                     display: block;
                     margin: auto;
-                }}
-                input[type="submit"] {{
+                }
+                input[type="submit"] {
                     margin-top: 15px;
                     background-color: #007BFF;
                     color: white;
@@ -151,10 +153,10 @@ def main():
                     width: 90%;
                     font-size: 16px;
                     transition: background 0.3s ease;
-                }}
-                input[type="submit"]:hover {{
+                }
+                input[type="submit"]:hover {
                     background-color: #0056b3;
-                }}
+                }
             </style>
         </head>
         <body>
@@ -168,7 +170,7 @@ def main():
         </body>
     </html>
     """
-   return HTMLResponse(content=content)
+    return HTMLResponse(content=content)
 
 # Run the FastAPI app with Uvicorn
 if __name__ == "__main__":
