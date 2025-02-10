@@ -3,7 +3,7 @@
 A deep learning-based **Fake Image Detection** system that uses **ResNet-18** to classify images as **Real or Fake**. The model is trained on image datasets and fine-tuned to improve accuracy.
 
 ## 📌 Features
-✔ **Deep Learning Model (ResNet-18)** - Pretrained & fine-tuned for fake image detection.  
+✔ **Deep Learning Model (ResNet-50)** - Pretrained & fine-tuned for fake image detection.  
 ✔ **FastAPI Web Interface** - Upload an image & get results instantly.  
 ✔ **User-Friendly UI** - Clean design with background image & smooth experience.  
 ✔ **Confidence Score** - Model shows prediction confidence.  
