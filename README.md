@@ -1,6 +1,6 @@
 # 🖼️ Fake Image Detector
 
-A deep learning-based **Fake Image Detection** system that uses **ResNet-18** to classify images as **Real or Fake**. The model is trained on image datasets and fine-tuned to improve accuracy.
+A deep learning-based **Fake Image Detection** system that uses **ResNet-50** to classify images as **Real or Fake**. The model is trained on image datasets and fine-tuned to improve accuracy.
 
 ## 📌 Features
 ✔ **Deep Learning Model (ResNet-50)** - Pretrained & fine-tuned for fake image detection.  
